@@ -14,7 +14,7 @@ Just run bash script to install ubuntu-server-cli which is secure.
 curl https://raw.githubusercontent.com/seandou/ubuntu-server-cli/master/netinstall/install | bash && source $HOME/.bashrc
 ```
 
-### Install from gitHub checkout
+### Install from github checkout
 
 1. Check out ubuntu-server-cli into ```$HOME/.ubuntu-server-cli```
 
