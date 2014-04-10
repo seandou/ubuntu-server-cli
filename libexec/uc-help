@@ -1,0 +1,158 @@
+#!/usr/bin/env bash
+#
+# Summary: Display help for a command
+#
+# Usage: uc help [--usage] COMMAND
+# 
+
+set -e
+[ -n "$UC_DEBUG" ] && set -x
+
+command_list='update install doc'
+
+command_path() {
+  local command="$1"
+  command -v uc-"$command" || true
+}
+
+extract_initial_comment_block() {
+  sed -ne "
+    /^#/ !{
+      q
+    }
+
+    s/^#$/# /
+
+    /^# / {
+      s/^# //
+      p
+    }
+  "
+}
+
+collect_documentation() {
+  awk '
+    /^Summary:/ {
+      summary = substr($0, 10)
+      next
+    }
+
+    /^Usage:/ {
+      reading_usage = 1
+      usage = usage "\n" $0
+      next
+    }
+
+    /^( *$|       )/ && reading_usage {
+      usage = usage "\n" $0
+      next
+    }
+
+    {
+      reading_usage = 0
+      help = help "\n" $0
+    }
+
+    function escape(str) {
+      gsub(/[`\\$"]/, "\\\\&", str)
+      return str
+    }
+
+    function trim(str) {
+      sub(/^\n*/, "", str)
+      sub(/\n*$/, "", str)
+      return str
+    }
+
+    END {
+      if (usage || summary) {
+        print "summary=\"" escape(summary) "\""
+        print "usage=\"" escape(trim(usage)) "\""
+        print "help=\"" escape(trim(help)) "\""
+      }
+    }
+  '
+}
+
+documentation_for() {
+  local filename="$(command_path "$1")"
+  if [ -n "$filename" ]; then
+    extract_initial_comment_block < "$filename" | collect_documentation
+  fi
+}
+
+print_summary() {
+  local command="$1"
+  local summary usage help
+  eval "$(documentation_for "$command")"
+
+  if [ -n "$summary" ]; then
+    printf "   %-9s   %s\n" "$command" "$summary"
+  fi
+}
+
+print_summaries() {
+  for command; do
+    print_summary "$command"
+  done
+}
+
+print_help() {
+  local command="$1"
+  local summary usage help
+  eval "$(documentation_for "$command")"
+  [ -n "$help" ] || help="$summary"
+
+  if [ -n "$usage" -o -n "$summary" ]; then
+    if [ -n "$help" ]; then
+      echo "$help"
+      echo
+    fi    
+    if [ -n "$usage" ]; then
+      echo "$usage"
+    else
+      echo "Usage: uc ${command}"
+    fi
+    echo
+  else
+    echo "Document is not correct." >&2
+    return 1
+  fi
+}
+
+print_usage() {
+  local command="$1"
+  local summary usage help
+  eval "$(documentation_for "$command")"
+  [ -z "$usage" ] || echo "$usage"
+}
+
+unset usage
+if [ "$1" = "--usage" ]; then
+  usage="1"
+  shift
+fi
+
+if [ -z "$1" ] || [ "$1" == "uc" ]; then
+  echo
+  echo "Usage: uc <command> [<args>]"
+  [ -z "$usage" ] || exit
+  echo
+  echo "uc commands:"
+  print_summaries $command_list
+  echo
+  echo "See \`uc help <command>' for information on a specific command." 
+  echo
+else
+  command="$1"
+  if [ -n "$(command_path "$command")" ]; then
+    if [ -n "$usage" ]; then
+      print_usage "$command"
+    else
+      print_help "$command"
+    fi
+  else
+    echo "Can not found command: \`$command'" >&2
+    exit 1
+  fi
+fi

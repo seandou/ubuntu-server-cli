@@ -1,0 +1,30 @@
+#!/bin/bash
+
+UC_ROOT="$HOME/.ubuntu-server-cli"
+UC_REPO="https://github.com/seandou/ubuntu-server-cli.git"
+
+if ! hash git 2>/dev/null; then
+  echo >&2 "You need to install git: sudo apt-get install git git-core"
+  exit 1
+fi
+
+if [ -d "$UC_ROOT" ]; then
+  echo "=> ubuntu-server-cli already installed in $UC_ROOT, trying to update"
+  echo -ne "\r=> "
+  cd $UC_ROOT && git pull origin master
+else
+  echo "=> Git clone ubuntu-server-cli to $UC_ROOT"
+  cd $HOME && git clone $UC_REPO $UC_ROOT
+fi
+
+PROFILE="$HOME/.bashrc"
+if ! hash uc 2>/dev/null; then
+  echo "=> Add $UC_ROOT/bin to PATH"
+  echo "
+if [ -d \"\$HOME/.ubuntu-server-cli\" ]; then
+    export PATH=\"\$HOME/.ubuntu-server-cli/bin:\$PATH\"
+    eval \"\$(uc init -)\"
+fi
+" >> $PROFILE
+fi
+

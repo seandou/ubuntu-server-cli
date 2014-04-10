@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+#
+# Summary: Update uc command
+#
+# Usage: uc update
+
+set -e
+[ -n "$UC_DEBUG" ] && set -x
+
+cd $UC_ROOT
+git pull origin master
+
+echo 'Done!'

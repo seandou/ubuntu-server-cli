@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#
+# Usage: uc completions <command> [arg1 arg2...]
+
+set -e
+[ -n "$UC_DEBUG" ] && set -x
+
+COMMAND="$1"
+if [ -z "$COMMAND" ]; then
+  uc-help --usage completions >&2
+  exit 1
+fi
+
+COMMAND_PATH="$(command -v "uc-$COMMAND")"
+if grep -i "^\([#%]\|--\|//\) provide uc completions" "$COMMAND_PATH" >/dev/null; then
+  shift
+  exec "$COMMAND_PATH" --complete "$@"
+fi
